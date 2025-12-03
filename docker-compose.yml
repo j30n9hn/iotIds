@@ -1,0 +1,57 @@
+version: "3.8"
+
+services:
+  ids:
+    build: ./ids
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - ./snort3:/etc/snort
+    container_name: ids-container
+    stdin_open: true
+    tty: true
+
+  external:
+    build: ./attacker
+    container_name: attacker
+    networks:
+      lab_net:
+        ipv4_address: 10.10.0.10
+    stdin_open: true
+    tty: true
+
+  wifi:
+    build: ./wifi
+    container_name: wifi
+    networks:
+      lab_net:
+        ipv4_address: 10.10.0.20
+    stdin_open: true
+    tty: true
+
+  hub:
+    build: ./hub
+    container_name: hub
+    networks:
+      lab_net:
+        ipv4_address: 10.10.0.30
+    stdin_open: true
+    tty: true
+
+  home:
+    build: ./home
+    container_name: home
+    networks:
+     lab_net:
+       ipv4_address: 10.10.0.70
+    stdin_open: true
+    tty: true
+
+networks:
+  lab_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.10.0.0/24
