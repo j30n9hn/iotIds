@@ -1,0 +1,52 @@
+FROM ubuntu:22.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt update && apt install -y \
+    git \
+    build-essential \
+    autotools-dev \
+    libtool \
+    pkg-config \
+    libpcap-dev \
+    libdumbnet-dev \
+    zlib1g-dev \
+    bison \
+    flex \
+    cmake \
+    libluajit-5.1-dev \
+    libhwloc-dev \
+    libssl-dev \
+    uuid-dev \
+    wget \
+    iputils-ping \
+    iproute2 \
+    nano \
+    vim \
+    net-tools \
+    libpcre2-dev \
+    systemd \
+    liblzma-dev && \
+    apt clean
+
+WORKDIR /opt
+
+# LibDAQ 설치
+RUN git clone https://github.com/snort3/libdaq.git && \
+    cd libdaq && \
+    ./bootstrap && \
+    ./configure && \
+    make && \
+    make install && \
+    ldconfig
+
+# Snort3 설치
+RUN git clone https://github.com/snort3/snort3.git && \
+    cd snort3 && \
+    ./configure_cmake.sh --prefix=/usr/local && \
+    cd build && \
+    make && \
+    make install && \
+    ldconfig
+
+CMD ["/bin/bash"]
