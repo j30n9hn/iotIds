@@ -18,5 +18,5 @@ cd /opt
 snort -Q -c ./snort3/lua/snort.lua -i br-xxxxx -A alert_fast
 ```
 br-xxxxx는 ifconfig에서 찾아 수정
-# external => attacker
+# external == attacker
 ping or attack
