@@ -2,7 +2,7 @@ FROM kalilinux/kali-rolling
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apt update && apt install -y net-tools iputils-ping
+RUN apt update && apt install -y net-tools iputils-ping nmap
 
 WORKDIR /opt
 
