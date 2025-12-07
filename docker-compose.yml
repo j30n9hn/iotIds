@@ -1,57 +1,119 @@
-version: "3.8"
-
 services:
+  # ============================
+  # 1) IDS (Snort3 등)
+  # ============================
   ids:
     build: ./ids
-    network_mode: host
+    container_name: ids-container
+    network_mode: host          # 호스트 네트워크 사용
     cap_add:
       - NET_ADMIN
       - NET_RAW
     volumes:
       - ./snort3:/etc/snort
-    container_name: ids-container
     stdin_open: true
     tty: true
 
-  external:
-    build: ./attacker
-    container_name: attacker
+  # ============================
+  # 2) Router (외부 <-> 내부 라우팅 / NAT)
+  # ============================
+  router:
+    build:
+      context: .
+      dockerfile: router/Dockerfile
+    container_name: router
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
     networks:
+      external_net:
+        ipv4_address: 192.168.50.254   # external 쪽 IP
       lab_net:
-        ipv4_address: 10.10.0.10
+        ipv4_address: 10.10.0.254      # 내부망 쪽 IP
     stdin_open: true
     tty: true
 
+  # ============================
+  # 3) External Attacker
+  # ============================
+  attacker:
+    build:
+      context: .
+      dockerfile: attacker/Dockerfile
+    container_name: attacker
+    cap_add:
+      - NET_ADMIN                      # 컨테이너 안에서 route 수정용
+    networks:
+      external_net:
+        ipv4_address: 192.168.50.10
+    environment:
+      - ROUTER_GW=192.168.50.254       # 기본 게이트웨이 = router의 external IP
+    stdin_open: true
+    tty: true
+
+  # ============================
+  # 4) 내부망 기기들 (WiFi / Hub / Home 등)
+  # ============================
   wifi:
-    build: ./wifi
+    build:
+      context: .
+      dockerfile: wifi/Dockerfile
     container_name: wifi
+    cap_add:
+      - NET_ADMIN
     networks:
       lab_net:
         ipv4_address: 10.10.0.20
+    environment:
+      - ROUTER_GW=10.10.0.254          # 기본 게이트웨이 = router의 lab_net IP
     stdin_open: true
     tty: true
 
   hub:
-    build: ./hub
+    build: 
+      context: .
+      dockerfile: hub/Dockerfile
     container_name: hub
+    cap_add:
+      - NET_ADMIN
     networks:
       lab_net:
         ipv4_address: 10.10.0.30
+    environment:
+      - ROUTER_GW=10.10.0.254
     stdin_open: true
     tty: true
 
   home:
-    build: ./home
+    build: 
+      context: .
+      dockerfile: home/Dockerfile
     container_name: home
+    cap_add:
+      - NET_ADMIN
     networks:
-     lab_net:
-       ipv4_address: 10.10.0.70
+      lab_net:
+        ipv4_address: 10.10.0.70
+    environment:
+      - ROUTER_GW=10.10.0.254
     stdin_open: true
     tty: true
 
+# ============================
+# 네트워크 정의
+# ============================
 networks:
+  # 내부 IoT 네트워크
   lab_net:
     driver: bridge
     ipam:
       config:
         - subnet: 10.10.0.0/24
+
+  # 외부(Internet 역할) 네트워크
+  external_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.50.0/24
+
