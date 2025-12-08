@@ -1,0 +1,24 @@
+# 1 pass authorized device
+pass ip $OPHONE any -> $HUB any (
+    msg:"AUTHORIZED DEVICE: Passing Owner's phone";
+    sid:3000101; rev:1;
+)
+
+# 2
+pass ip $WIFI any -> $HUB any (
+    msg:"AUTHORIZED DEVICE: Passing Owner's wifi";
+    sid:3000102; rev:1;
+)
+
+# 3 homenet
+pass ip $HOME_NET any -> $HUB any (
+    msg:"AUTHORIZED DEVICE: Passing Owner's devices at home";
+    sid:3000103; rev:1;
+)
+
+
+# 4 drop every access
+drop ip any any -> $HUB any (
+    msg:"UNAUTHORIZED DEVICE: Access to IoT hub blocked";
+    sid:3000100; rev:1;
+)

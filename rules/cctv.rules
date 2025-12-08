@@ -1,0 +1,125 @@
+# RTSP 무차별 대입 공격
+drop tcp any any -> $HOME_NET 8554 (
+    msg:"RTSP Login Brute Force Blocked";
+    flow:to_server,established;
+    detection_filter:track by_src, count 5, seconds 10;
+    sid:2000001; rev:1; classtype:attempted-admin; priority:1;
+)
+
+# RTSP 버퍼 오버플로우
+alert tcp any any -> $HOME_NET 8554 (
+    msg:"RTSP Buffer Overflow Attempt";
+    flow:to_server,established;
+    content:"DESCRIBE";
+    isdataat:1024,relative;
+    sid:2000002; rev:1; classtype:attempted-dos; priority:1;
+)
+
+# RTSP SETUP 명령 악용
+alert tcp any any -> $HOME_NET 8554 (
+    msg:"RTSP SETUP Command Exploitation";
+    flow:to_server,established;
+    content:"SETUP";
+    content:"Transport|3A|";
+    pcre:"/client_port=\d{5,}/i";
+    sid:2000003; rev:1; classtype:attempted-dos; priority:2;
+)
+
+# RTSP OPTIONS Flood
+drop tcp any any -> $HOME_NET 8554 (
+    msg:"RTSP OPTIONS Flood Blocked";
+    content:"OPTIONS";
+    detection_filter:track by_src, count 20, seconds 5;
+    sid:2000004; rev:1; classtype:attempted-dos; priority:1;
+)
+
+# RTSP Path Traversal
+alert tcp any any -> $HOME_NET 8554 (
+    msg:"RTSP Path Traversal Attempt";
+    content:"../";
+    sid:2000005; rev:1; classtype:web-application-attack; priority:1;
+)
+
+# RTSP 무단 DESCRIBE
+alert tcp any any -> $HOME_NET 8554 (
+    msg:"Unauthorized RTSP DESCRIBE Access";
+    content:"DESCRIBE";
+    sid:2000006; rev:1; classtype:attempted-recon; priority:2;
+)
+
+# ONVIF 인증 우회
+alert tcp any any -> $HOME_NET 80 (
+    msg:"ONVIF Authentication Bypass";
+    flow:to_server,established;
+    content:"POST"; http_method;
+    content:"/onvif/device_service"; http_uri;
+    content:!"Authorization:"; http_header;
+    sid:2000007; rev:1; classtype:web-application-attack; priority:1;
+)
+
+# CCTV 포트 스캔
+alert tcp any any -> $HOME_NET [80,554,8000,8080,8554] (
+    msg:"CCTV Multiple Port Scan Detected";
+    flags:S;
+#threshold:type threshold, track by_src, count 4, seconds 5;
+    sid:2000008; rev:1; classtype:attempted-recon; priority:2;
+)
+
+# CGI 취약점 공격
+alert tcp any any -> $HOME_NET [80,8080] (
+    msg:"CCTV CGI Vulnerability Exploitation";
+    flow:to_server,established;
+    content:"GET"; http_method;
+    pcre:"/\/cgi-bin\/.*\.(cgi|sh)/i";
+    sid:2000009; rev:1; classtype:web-application-attack; priority:1;
+)
+
+# CCTV 펌웨어 다운로드
+alert tcp any any -> $HOME_NET [80,8080] (
+    msg:"CCTV Firmware Download Attempt";
+    flow:to_server,established;
+    content:"GET"; http_method;
+    content:".bin"; http_uri;
+    sid:2000010; rev:1; classtype:attempted-admin; priority:2;
+)
+
+# HikVision 백도어
+alert tcp any any -> $HOME_NET [80,8000] (
+    msg:"HikVision Backdoor Access";
+    flow:to_server,established;
+    content:"/System/configurationFile"; http_uri;
+    sid:2000011; rev:1; classtype:trojan-activity; priority:1;
+)
+
+# Dahua DVR 공격
+alert tcp any any -> $HOME_NET 37777 (
+    msg:"Dahua DVR Remote Access";
+    flow:to_server,established;
+    content:"|a0 00 00 60|";
+    sid:2000012; rev:1; classtype:attempted-admin; priority:1;
+)
+
+# CCTV 기본 인증 (admin:admin)
+alert tcp any any -> $HOME_NET [80,554,8000,8080,8554] (
+    msg:"CCTV Default Credentials (admin:admin)";
+    flow:to_server,established;
+    content:"Authorization: Basic YWRtaW46YWRtaW4="; http_header;
+    sid:2000013; rev:1; classtype:attempted-admin; priority:1;
+)
+
+# CCTV 기본 인증 (admin:12345)
+alert tcp any any -> $HOME_NET [80,554,8000,8080,8554] (
+    msg:"CCTV Default Credentials (admin:12345)";
+    flow:to_server,established;
+    content:"Authorization: Basic YWRtaW46MTIzNDU="; http_header;
+    sid:2000014; rev:1; classtype:attempted-admin; priority:1;
+)
+
+# CCTV HTTP 무차별 대입
+drop tcp any any -> $HOME_NET [80,8080] (
+    msg:"CCTV HTTP Brute Force Blocked";
+    flow:to_server,established;
+    content:"401"; http_stat_code;
+    detection_filter:track by_src, count 5, seconds 30;
+    sid:2000015; rev:1; classtype:attempted-admin; priority:1;
+)

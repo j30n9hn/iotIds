@@ -1,0 +1,14 @@
+# 1 drop wifi login brute force attack
+drop http $EXTERNAL_NET any -> $WIFI 80 (
+    msg:"BRUTEFORCE: Repeated login attempts to WiFi router admin";
+    http_uri; content:"/login";
+    detection_filter: track by_src, count 10, seconds 5;
+    sid:20001001; rev:1;
+)
+
+# 2 drop wifi admin page brute force attack
+alert http $EXTERNAL_NET any -> $WIFI 80 (
+    msg:"PROBING: Access to IoT router admin pages";
+    http_uri; content:"/admin";
+    sid:20001002; rev:1;
+)

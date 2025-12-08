@@ -1,0 +1,220 @@
+# 명령 인젝션 (세미콜론)
+drop http any any -> $HOME_NET 5000 (
+    msg:"Command Injection Blocked (semicolon)";
+    content:";";
+    sid:3000001; rev:1; classtype:web-application-attack; priority:1;
+)
+
+# 명령 인젝션 (rm -rf)
+drop http any any -> $HOME_NET 5000 (
+    msg:"Command Injection Blocked (rm -rf)";
+    content:"rm -rf";
+    sid:3000002; rev:1; classtype:web-application-attack; priority:1;
+)
+
+# curl 인젝션
+alert http any any -> $HOME_NET 5000 (
+    msg:"curl Injection Detected";
+    content:"curl";
+    sid:3000003; rev:1; classtype:web-application-attack; priority:2;
+)
+
+# wget 인젝션
+alert http any any -> $HOME_NET 5000 (
+    msg:"wget Injection Detected";
+    content:"wget";
+    sid:3000004; rev:1; classtype:web-application-attack; priority:2;
+)
+
+# SQL 인젝션
+alert tcp any any -> $HOME_NET 5000 (
+    msg:"SQL Injection Attempt";
+    flow:to_server,established;
+    pcre:"/(union|select|insert|update|delete|drop).*from/i";
+    sid:3000005; rev:1; classtype:web-application-attack; priority:1;
+)
+
+# SQL 인젝션 기본 패턴
+alert http any any -> $HOME_NET 5000 (
+    msg:"SQL Injection Basic Pattern";
+    content:"' OR 1=1 --";
+    sid:3000006; rev:1; classtype:web-application-attack; priority:1;
+)
+
+# XSS 공격
+alert http any any -> $HOME_NET 5000 (
+    msg:"XSS Attack Detected";
+    content:"<script>";
+    sid:3000007; rev:1; classtype:web-application-attack; priority:2;
+)
+
+# Directory Traversal
+alert http any any -> $HOME_NET 5000 (
+    msg:"Directory Traversal Detected";
+    content:"../";
+    sid:3000008; rev:1; classtype:web-application-attack; priority:1;
+)
+
+# API 무차별 대입
+drop http any any -> $HOME_NET 5000 (
+    msg:"AI Speaker Login Brute Force Blocked";
+    content:"login";
+    detection_filter:track by_src, count 5, seconds 20;
+    sid:3000009; rev:1; classtype:attempted-admin; priority:1;
+)
+
+# Admin 권한 탈취
+drop http any any -> $HOME_NET 5000 (
+    msg:"Admin Override Attempt Blocked";
+    content:"admin=true";
+    sid:3000010; rev:1; classtype:web-application-attack; priority:1;
+)
+
+# ShellShock 공격
+drop http any any -> $HOME_NET 5000 (
+    msg:"ShellShock Attack Blocked";
+    content:"() { :; };";
+    sid:3000011; rev:1; classtype:web-application-attack; priority:1;
+)
+
+# 스마트 스피커 API 플러딩
+alert tcp any any -> $HOME_NET 5000 (
+    msg:"API Request Flooding";
+    flow:to_server,established;
+    threshold:type threshold, track by_src, count 100, seconds 10;
+    sid:3000012; rev:1; classtype:attempted-dos; priority:1;
+)
+
+# WebSocket 하이재킹
+alert tcp any any -> $HOME_NET 5000 (
+    msg:"WebSocket Hijacking Attempt";
+    flow:to_server,established;
+    content:"Upgrade: websocket"; http_header; nocase;
+    content:!"Origin:"; http_header;
+    sid:3000013; rev:1; classtype:web-application-attack; priority:2;
+)
+
+# SQLMap 스캐너
+alert http any any -> $HOME_NET 5000 (
+    msg:"SQLMap Scan Detected";
+    content:"sqlmap";
+    sid:3000014; rev:1; classtype:web-application-attack; priority:2;
+)
+
+# URL 인코딩 인젝션
+alert http any any -> $HOME_NET 5000 (
+    msg:"URL Encoded Injection";
+    content:"%3B";
+    sid:3000015; rev:1; classtype:web-application-attack; priority:2;
+)
+
+# Base64 인코딩 페이로드
+alert http any any -> $HOME_NET 5000 (
+    msg:"Base64 Encoded Payload";
+    content:"base64";
+    sid:3000016; rev:1; classtype:trojan-activity; priority:2;
+)
+
+# MQTT 무단 접속
+alert tcp any any -> $HOME_NET 1883 (
+    msg:"MQTT Unauthorized Connection";
+    flow:to_server,established;
+    content:"|10|"; depth:1;
+    content:"|00 04|MQTT"; distance:2; within:6;
+    sid:3000017; rev:1; classtype:attempted-admin; priority:2;
+)
+
+# 민감 정보 유출 (/etc/passwd)
+alert http any any -> $HOME_NET 5000 (
+    msg:"/etc/passwd Read Attempt";
+    content:"/etc/passwd";
+    sid:3000018; rev:1; classtype:attempted-admin; priority:1;
+)
+
+# 민감 정보 유출 (/etc/shadow)
+drop http any any -> $HOME_NET 5000 (
+    msg:"/etc/shadow Access Blocked";
+    content:"/etc/shadow";
+    sid:3000019; rev:1; classtype:attempted-admin; priority:1;
+)
+
+# 스피커 기본 인증 (admin:admin)
+alert tcp any any -> $HOME_NET 5000 (
+    msg:"Speaker Default Credentials (admin:admin)";
+    flow:to_server,established;
+    content:"Authorization: Basic YWRtaW46YWRtaW4="; http_header;
+    sid:3000020; rev:1; classtype:attempted-admin; priority:1;
+)
+
+# 스피커 기본 인증 (root:root)
+alert tcp any any -> $HOME_NET 5000 (
+    msg:"Speaker Default Credentials (root:root)";
+    flow:to_server,established;
+    content:"Authorization: Basic cm9vdDpyb290"; http_header;
+    sid:3000021; rev:1; classtype:attempted-admin; priority:1;
+)
+
+# Python Reverse Shell
+drop http any any -> $HOME_NET 5000 (
+    msg:"Python Reverse Shell Blocked";
+    content:"socket";
+    content:"subprocess";
+    sid:3000022; rev:1; classtype:trojan-activity; priority:1;
+)
+
+# Bash Reverse Shell
+drop http any any -> $HOME_NET 5000 (
+    msg:"Bash Reverse Shell Blocked";
+    content:"bash -i";
+    sid:3000023; rev:1; classtype:trojan-activity; priority:1;
+)
+
+# Netcat Reverse Shell
+drop http any any -> $HOME_NET 5000 (
+    msg:"Netcat Reverse Shell Blocked";
+    content:"nc -e";
+    sid:3000024; rev:1; classtype:trojan-activity; priority:1;
+)
+
+# Fork Bomb
+drop http any any -> $HOME_NET 5000 (
+    msg:"Fork Bomb Attempt Blocked";
+    content:":(){:|:&};";
+    sid:3000025; rev:1; classtype:attempted-dos; priority:1;
+)
+
+# .sh 스크립트 다운로드
+drop http any any -> $HOME_NET 5000 (
+    msg:"Malicious Shell Script Blocked";
+    content:".sh";
+    sid:3000026; rev:1; classtype:trojan-activity; priority:1;
+)
+
+# HTTP 헤더 오버플로우
+drop http any any -> $HOME_NET 5000 (
+    msg:"HTTP Header Overflow Blocked";
+    dsize:>2000;
+    sid:3000027; rev:1; classtype:attempted-dos; priority:1;
+)
+
+# Slowloris 공격
+alert http any any -> $HOME_NET 5000 (
+    msg:"Slowloris Attack Detected";
+    content:"Keep-Alive";
+    threshold:type threshold, track by_src, count 20, seconds 10;
+    sid:3000028; rev:1; classtype:attempted-dos; priority:1;
+)
+
+# Nikto 스캐너
+alert http any any -> $HOME_NET 5000 (
+    msg:"Nikto Scanner Detected";
+    content:"nikto";
+    sid:3000029; rev:1; classtype:attempted-recon; priority:2;
+)
+
+# Metasploit 페이로드
+alert http any any -> $HOME_NET 5000 (
+    msg:"Metasploit Payload Detected";
+    content:"msf";
+    sid:3000030; rev:1; classtype:trojan-activity; priority:1;
+)

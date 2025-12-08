@@ -1,0 +1,284 @@
+alert icmp any any -> 10.10.0.70 any (
+    msg:"SQLMap Scan Detected";
+    sid:3000222; rev:3; priority:2;
+)
+#########################################
+# Command Injection
+#########################################
+
+drop http any any -> $HOME_NET 5000 (
+    msg:"Command Injection Blocked (semicolon)";
+    content:";";
+    sid:3000001; rev:3; classtype:web-application-attack; priority:1;
+)
+
+drop http any any -> $HOME_NET 5000 (
+    msg:"Command Injection Blocked (rm -rf)";
+    content:"rm -rf";
+    sid:3000002; rev:3; classtype:web-application-attack; priority:1;
+)
+
+#########################################
+# curl / wget Injection
+#########################################
+
+alert http any any -> $HOME_NET 5000 (
+    msg:"curl Injection Detected";
+    content:"curl";
+    sid:3000003; rev:3; classtype:web-application-attack; priority:2;
+)
+
+alert http any any -> $HOME_NET 5000 (
+    msg:"wget Injection Detected";
+    content:"wget";
+    sid:3000004; rev:3; classtype:web-application-attack; priority:2;
+)
+
+#########################################
+# SQL Injection
+#########################################
+
+alert tcp any any -> $HOME_NET 5000 (
+    msg:"SQL Injection Attempt";
+    flow:to_server,established;
+    pcre:"/(union|select|insert|update|delete|drop).*from/i";
+    sid:3000005; rev:3; classtype:web-application-attack; priority:1;
+)
+
+alert http any any -> $HOME_NET 5000 (
+    msg:"SQL Injection Basic Pattern";
+    content:"' OR 1=1 --";
+    sid:3000006; rev:3; classtype:web-application-attack; priority:1;
+)
+
+#########################################
+# XSS
+#########################################
+
+alert http any any -> $HOME_NET 5000 (
+    msg:"XSS Attack Detected";
+    content:"<script>";
+    sid:3000007; rev:3; classtype:web-application-attack; priority:2;
+)
+
+#########################################
+# Directory Traversal
+#########################################
+
+alert http any any -> $HOME_NET 5000 (
+    msg:"Directory Traversal Detected";
+    content:"../";
+    sid:3000008; rev:3; classtype:web-application-attack; priority:1;
+)
+
+#########################################
+# API Login Brute Force
+#########################################
+
+drop http any any -> $HOME_NET 5000 (
+    msg:"AI Speaker Login Brute Force Blocked";
+    content:"login";
+    detection_filter:track by_src, count 5, seconds 20;
+    sid:3000009; rev:3; classtype:attempted-admin; priority:1;
+)
+
+#########################################
+# Admin Override
+#########################################
+
+drop http any any -> $HOME_NET 5000 (
+    msg:"Admin Override Attempt Blocked";
+    content:"admin=true";
+    sid:3000010; rev:3; classtype:web-application-attack; priority:1;
+)
+
+#########################################
+# ShellShock
+#########################################
+
+drop http any any -> $HOME_NET 5000 (
+    msg:"ShellShock Attack Blocked";
+    content:"() { :; };";
+    sid:3000011; rev:3; classtype:web-application-attack; priority:1;
+)
+
+#########################################
+# API Flooding (DoS)
+#########################################
+
+alert tcp any any -> $HOME_NET 5000 (
+    msg:"API Request Flooding";
+    flow:to_server,established;
+    detection_filter:track by_src, count 100, seconds 10;
+    sid:3000012; rev:3; classtype:attempted-dos; priority:1;
+)
+
+#########################################
+# WebSocket Hijacking (단순화 버전)
+#########################################
+
+alert tcp any any -> $HOME_NET 5000 (
+    msg:"WebSocket Hijacking Attempt";
+    flow:to_server,established;
+    content:"Upgrade: websocket"; http_header;
+    sid:3000013; rev:3; classtype:web-application-attack; priority:2;
+)
+
+#########################################
+# SQLMap Scanner
+#########################################
+
+alert http any any -> $HOME_NET 5000 (
+    msg:"SQLMap Scan Detected";
+    content:"sqlmap";
+    sid:3000014; rev:3; classtype:web-application-attack; priority:2;
+)
+
+#########################################
+# URL Encoded Injection
+#########################################
+
+alert http any any -> $HOME_NET 5000 (
+    msg:"URL Encoded Injection";
+    content:"%3B";
+    sid:3000015; rev:3; classtype:web-application-attack; priority:2;
+)
+
+#########################################
+# Base64 Payload Detection
+#########################################
+
+alert http any any -> $HOME_NET 5000 (
+    msg:"Base64 Encoded Payload";
+    content:"base64";
+    sid:3000016; rev:3; classtype:trojan-activity; priority:2;
+)
+
+#########################################
+# MQTT Unauthorized Connect (단순화)
+#########################################
+
+alert tcp any any -> $HOME_NET 1883 (
+    msg:"MQTT Unauthorized Connection";
+    flow:to_server,established;
+    content:"MQTT";
+    sid:3000017; rev:3; classtype:attempted-admin; priority:2;
+)
+
+#########################################
+# Sensitive File Access
+#########################################
+
+alert http any any -> $HOME_NET 5000 (
+    msg:"/etc/passwd Read Attempt";
+    content:"/etc/passwd";
+    sid:3000018; rev:3; classtype:attempted-admin; priority:1;
+)
+
+drop http any any -> $HOME_NET 5000 (
+    msg:"/etc/shadow Access Blocked";
+    content:"/etc/shadow";
+    sid:3000019; rev:3; classtype:attempted-admin; priority:1;
+)
+
+#########################################
+# Default Credentials
+#########################################
+
+alert tcp any any -> $HOME_NET 5000 (
+    msg:"Speaker Default Credentials (admin:admin)";
+    flow:to_server,established;
+    content:"Authorization: Basic YWRtaW46YWRtaW4="; http_header;
+    sid:3000020; rev:3; classtype:attempted-admin; priority:1;
+)
+
+alert tcp any any -> $HOME_NET 5000 (
+    msg:"Speaker Default Credentials (root:root)";
+    flow:to_server,established;
+    content:"Authorization: Basic cm9vdDpyb290"; http_header;
+    sid:3000021; rev:3; classtype:attempted-admin; priority:1;
+)
+
+#########################################
+# Reverse Shell Blocking
+#########################################
+
+drop http any any -> $HOME_NET 5000 (
+    msg:"Python Reverse Shell Blocked";
+    content:"socket";
+    content:"subprocess";
+    sid:3000022; rev:3; classtype:trojan-activity; priority:1;
+)
+
+drop http any any -> $HOME_NET 5000 (
+    msg:"Bash Reverse Shell Blocked";
+    content:"bash -i";
+    sid:3000023; rev:3; classtype:trojan-activity; priority:1;
+)
+
+drop http any any -> $HOME_NET 5000 (
+    msg:"Netcat Reverse Shell Blocked";
+    content:"nc -e";
+    sid:3000024; rev:3; classtype:trojan-activity; priority:1;
+)
+
+#########################################
+# Fork Bomb
+#########################################
+
+drop http any any -> $HOME_NET 5000 (
+    msg:"Fork Bomb Attempt Blocked";
+    content:"|3A 28 29 7B 3A 7C 3A 26 7D 3B|";
+    sid:3000025; rev:3; classtype:attempted-dos; priority:1;
+)
+
+#########################################
+# Malicious .sh Download
+#########################################
+
+drop http any any -> $HOME_NET 5000 (
+    msg:"Malicious Shell Script Blocked";
+    content:".sh";
+    sid:3000026; rev:3; classtype:trojan-activity; priority:1;
+)
+
+#########################################
+# HTTP Header Overflow
+#########################################
+
+drop http any any -> $HOME_NET 5000 (
+    msg:"HTTP Header Overflow Blocked";
+    dsize:>2000;
+    sid:3000027; rev:3; classtype:attempted-dos; priority:1;
+)
+
+#########################################
+# Slowloris Detection
+#########################################
+
+alert http any any -> $HOME_NET 5000 (
+    msg:"Slowloris Attack Detected";
+    content:"Keep-Alive";
+    detection_filter:track by_src, count 20, seconds 10;
+    sid:3000028; rev:3; classtype:attempted-dos; priority:1;
+)
+
+#########################################
+# Nikto Scanner
+#########################################
+
+alert http any any -> $HOME_NET 5000 (
+    msg:"Nikto Scanner Detected";
+    content:"nikto";
+    sid:3000029; rev:3; classtype:attempted-recon; priority:2;
+)
+
+#########################################
+# Metasploit Payload
+#########################################
+
+alert http any any -> $HOME_NET 5000 (
+    msg:"Metasploit Payload Detected";
+    content:"msf";
+    sid:3000030; rev:3; classtype:trojan-activity; priority:1;
+)
