@@ -71,6 +71,14 @@ attacker → router → hub
 ```
 
 # IDS
+## IP 추가
+새로운 IP 추가 시 다음과 같은 형식으로 `snort.lua`에 작성
+```
+-- default_variables 변수 추가
+default_variables.nets.HUB    = '10.10.0.30'
+default_variables.nets.WIFI   = '10.10.0.20'
+default_variables.nets.OPHONE = '10.10.0.50'
+```
 ## docker
 ```
 docker exec -it ids-container /bin/bash
