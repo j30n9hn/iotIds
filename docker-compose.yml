@@ -99,6 +99,65 @@ services:
     stdin_open: true
     tty: true
 
+  printer:
+    build: 
+      context: .
+      dockerfile: printer/Dockerfile
+    container_name: printer
+    cap_add:
+      - NET_ADMIN
+    networks:
+      lab_net:
+        ipv4_address: 10.10.0.40
+    environment:
+      - ROUTER_GW=10.10.0.254
+    stdin_open: true
+    tty: true
+
+  vacuum:
+    build: 
+      context: .
+      dockerfile: vacuum/Dockerfile
+    container_name: vacuum
+    cap_add:
+      - NET_ADMIN
+    networks:
+      lab_net:
+        ipv4_address: 10.10.0.41
+    environment:
+      - ROUTER_GW=10.10.0.254
+    stdin_open: true
+    tty: true
+
+  fridge:
+    build: 
+      context: .
+      dockerfile: fridge/Dockerfile
+    container_name: fridge
+    cap_add:
+      - NET_ADMIN
+    networks:
+      lab_net:
+        ipv4_address: 10.10.0.42
+    environment:
+      - ROUTER_GW=10.10.0.254
+    stdin_open: true
+    tty: true
+
+  heater:
+    build: 
+      context: .
+      dockerfile: heater/Dockerfile
+    container_name: heater
+    cap_add:
+      - NET_ADMIN
+    networks:
+      lab_net:
+        ipv4_address: 10.10.0.43
+    environment:
+      - ROUTER_GW=10.10.0.254
+    stdin_open: true
+    tty: true
 # ============================
 # 네트워크 정의
 # ============================
