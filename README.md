@@ -3,11 +3,13 @@
 Docker 기반으로 외부 공격자 → 라우터 → 내부 IoT 네트워크 → IDS(Snort3) 의 구조를 재현하여
 IoT 장비(CCTV, Hub 등)에 대한 공격을 탐지·차단하는 실습용 환경
 
+IDS는 Snort3 Inline 모드(afpacket)로 실행되어 실제처럼 패킷을 탐지 및 차단
+
 구성 요소:
 - attacker (외부망)
-- router (NAT + 라우팅 + 포워딩)
-- wifi / hub / home (내부 IoT 네트워크)
-- ids (Snort3) – host network 를 사용하여 모든 브리지 트래픽 모니터링
+- router (NAT, IP forwarding, 외부망 ↔ 내부망 라우팅)
+- wifi / hub / home / printer / vacuum / fridge / heater (내부 IoT 네트워크)
+- ids (Snort3) – Snort3 Inline 모드 기반 IDS/IPS — 모든 브리지 트래픽 모니터링
 
 # 실행 순서
 ## 환경 다운로드
@@ -25,10 +27,10 @@ docker compose build --no-cache
 
 # 네트워크 구조
 
-|네트워크|역할|게이트웨이(br-xxxx)|범위|
+|네트워크|역할|게이트웨이|범위|
 |---|---|---|---|
-|external_net|외부(Internet 역할)|192.168.50.1|192.168.50.0/24|
-|lab_net|내부 IoT 네트워크|10.10.0.1|10.10.0.0/24|
+|external_net|외부(Internet 역할)|192.168.50.254|192.168.50.0/24|
+|lab_net|내부 IoT 네트워크|10.10.0.254|10.10.0.0/24|
 
 ## 컨테이너 배치
 
@@ -37,7 +39,7 @@ docker compose build --no-cache
         ↓
 (external_net)
         ↓
-(router: 192.168.50.254 ↔ 10.10.0.254)
+(router: 192.168.50.254(eth0) ↔ 10.10.0.254(eth1)) ← Snort가 감시
         ↓
 (lab_net)
         ↓
@@ -75,6 +77,15 @@ attacker → router → hub
 ```
 
 # IDS
+## 설명
+Snort3 IDS는 router 컨테이너와 동일한 네트워크 네임스페이스에서 실행(network_mode: container:router)
+
+따라서 Snort는 router의 eth0(external_net)과 eth1(lab_net)을 직접 공유하고,
+Router를 통과하는 모든 트래픽(외부→내부, 내부→외부)을 Inline 모드로 검사 및 차단
+
+즉, Snort는 네트워크 구조상 Router 바로 뒤에 위치한 IDS/IPS 역할을 수행하며,
+실제 기업 네트워크에서 방화벽 앞단이나 뒤단에 배치되는 IPS와 동일한 구성을 갖음
+
 ## IP 추가
 새로운 IP 추가 시 다음과 같은 형식으로 `snort.lua`에 작성
 ```
@@ -87,14 +98,14 @@ default_variables.nets.OPHONE = '10.10.0.50'
 ```
 docker exec -it ids-container /bin/bash
 ```
-## snort
+## snort3
 ```
 cd /opt
-snort -c ./snort3/lua/snort.lua -i br-da27e6c37eea -A alert_fast -l ./
+snort -Q --daq afpacket --daq-mode inline -i eth0 -c ./snort3/lua/snort.lua -A alert_fast -l ./
 ```
-br-xxxxx는 ifconfig에서 찾아서 수정.<br>
-외부망에 대한 탐지는 `external-net`에 해당하는 `br-xxx`를 사용하며 `inet 192.168.50.1`을 사용.<br>
-내부망에 대한 탐지는 `lab-net`에 해당하는 `br-xxx`를 사용하며 `inet 10.10.0.1`을 사용.<br>
+- IDS 컨테이너는 router 컨테이너의 네트워크 스택을 공유(network_mode: container:router)
+- 따라서 단일 인터페이스 eth0만 감시하면 됨
+- `afpacket inline` 모드는 패킷 탐지 + 차단(drop) 지원
 
 # Attacker
 ## docker
@@ -105,4 +116,8 @@ docker exec -it attacker /bin/bash
 ```
 nmap -sS -p 1-1000 10.10.0.30
 ```
-nmap, hping3, metasploit, hydara
+## 설치된 도구
+- nmap
+- hping3
+- metasploit
+- hydara
