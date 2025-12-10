@@ -1,1 +1,1 @@
-FROM ghcr.io/j30n9hn/ids-container:2025-12-08.01
+FROM ghcr.io/j30n9hn/ids-container:2025-12-10.01
