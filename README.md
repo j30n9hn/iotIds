@@ -44,6 +44,10 @@ docker compose build --no-cache
 wifi (10.10.0.20)
 hub  (10.10.0.30)
 home (10.10.0.70)
+printer (10.10.0.40)
+vacuum (10.10.0.41)
+fridge (10.10.0.42)
+heater (10.10.0.43)
 ```
 IDS는 호스트 네트워크에서 두 개의 Docker 브리지를 직접 모니터링함
 ```
