@@ -51,11 +51,6 @@ vacuum (10.10.0.41)
 fridge (10.10.0.42)
 heater (10.10.0.43)
 ```
-IDS는 호스트 네트워크에서 두 개의 Docker 브리지를 직접 모니터링함
-```
-br-XXXX (external_net) → 192.168.50.1
-br-YYYY (lab_net)      → 10.10.0.1
-```
 
 # Router
 ## 역할
