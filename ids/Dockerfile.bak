@@ -23,13 +23,34 @@ RUN apt update && apt install -y \
     iproute2 \
     nano \
     vim \
+    libnetfilter-queue-dev \
     net-tools \
     libpcre2-dev \
+    libpcre3-dev \
+    libdnet-dev \
+    libmnl-dev \
+    autoconf automake\
     systemd \
+    locales \
+    language-pack-ko \
     liblzma-dev && \
-    apt clean
+    apt clean && \
+    locale-gen ko_KR.utf8 && \
+    dpkg-reconfigure locales
 
 WORKDIR /opt
+
+# .bashrc에 로케일 추가
+RUN echo "" >> /root/.bashrc && \
+    echo "# Setting Language(ko_KR.UTF-8)" >> /root/.bashrc && \
+    echo "export LANGUAGE=ko_KR.UTF-8" >> /root/.bashrc && \
+    echo "export LANG=ko_KR.UTF-8" >> /root/.bashrc && \
+    echo "export LC_ALL=ko_KR.UTF-8" >> /root/.bashrc
+
+# 환경 변수 즉시 적용되도록
+ENV LANGUAGE=ko_KR.UTF-8
+ENV LANG=ko_KR.UTF-8
+ENV LC_ALL=ko_KR.UTF-8
 
 # LibDAQ 설치
 RUN git clone https://github.com/snort3/libdaq.git && \
