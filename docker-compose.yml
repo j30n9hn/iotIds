@@ -5,7 +5,7 @@ services:
   ids:
     build: ./ids
     container_name: ids-container
-    network_mode: host          # 호스트 네트워크 사용
+    network_mode: "container:router"          # 호스트 네트워크 사용
     cap_add:
       - NET_ADMIN
       - NET_RAW
