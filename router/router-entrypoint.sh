@@ -8,6 +8,9 @@ echo "[router] starting router container..."
 EXT_IP="192.168.50.254"
 INT_IP="10.10.0.254"
 
+echo "nameserver 1.1.1.1" > /etc/resolv.conf
+echo "nameserver 8.8.8.8" >> /etc/resolv.conf
+
 # 해당 IP를 가진 인터페이스 이름 자동 탐지
 EXT_IF=$(ip -4 addr show | awk -v ip="$EXT_IP" '$0 ~ ip {gsub(":", "", $NF); print $NF}')
 INT_IF=$(ip -4 addr show | awk -v ip="$INT_IP" '$0 ~ ip {gsub(":", "", $NF); print $NF}')
