@@ -2,7 +2,7 @@ FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apt update && apt install -y net-tools iputils-ping mosquitto mosquitto-clients systemd iproute2
+RUN apt update && apt install -y tshark net-tools iputils-ping mosquitto mosquitto-clients systemd iproute2
 
 # 공통 게이트웨이 설정 스크립트 복사
 COPY common/set-gateway.sh /usr/local/bin/set-gateway.sh
