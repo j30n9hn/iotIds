@@ -1,0 +1,104 @@
+########################################
+# ROBOT VACUUM (10.10.0.41) - Snort 3
+########################################
+
+# V1 - 인증 없이 청소 시작 명령 차단
+drop tcp any any -> 10.10.0.41 80 (
+    msg:"VACUUM: Unauthorized start cleaning command";
+    http_uri;
+    content:"/vacuum/start",nocase;
+    sid:4000301; rev:1;
+)
+
+# V2 - 스팟 청소 명령 차단
+drop tcp any any -> 10.10.0.41 80 (
+    msg:"VACUUM: Suspicious spot cleaning command";
+    http_uri;
+    content:"/vacuum/spot",nocase;
+    sid:4000302; rev:1;
+)
+
+# V3 - 지도 삭제 시도 차단
+drop tcp any any -> 10.10.0.41 80 (
+    msg:"VACUUM: Map erase command blocked";
+    http_uri;
+    content:"/vacuum/map/delete",nocase;
+    sid:4000303; rev:1;
+)
+
+# V4 - 진단용 쉘 스크립트 접근 탐지
+alert tcp any any -> 10.10.0.41 80 (
+    msg:"VACUUM: Access to diagnostic shell";
+    http_uri;
+    content:"/cgi-bin/diagnostic.sh",nocase;
+    sid:4000304; rev:1;
+)
+
+# V5 - 텔넷 관리 포트 차단
+drop tcp any any -> 10.10.0.41 23 (
+    msg:"VACUUM: Telnet access blocked";
+    flow:to_server;
+    sid:4000305; rev:1;
+)
+
+# V6 - MQTT를 통한 청소 명령 탐지
+alert tcp any any -> 10.10.0.41 1883 (
+    msg:"VACUUM: MQTT control command to vacuum";
+    flow:to_server,established;
+    content:"PUBLISH";
+    content:"vacuum/command",nocase;
+    sid:4000306; rev:1;
+)
+
+# V7 - HTTP 요청 플러딩 차단
+drop tcp any any -> 10.10.0.41 80 (
+    msg:"VACUUM: HTTP request flood";
+    detection_filter:track by_src, count 100, seconds 10;
+    sid:4000307; rev:1;
+)
+
+# V8 - 외부로 지도 업로드 탐지
+alert tcp 10.10.0.41 any -> any 443 (
+    msg:"VACUUM: Map data upload to external cloud";
+    flow:to_server,established;
+    http_uri;
+    content:"/api/map/upload",nocase;
+    sid:4000308; rev:1;
+)
+
+# V9 - 로봇청소기 대상 ICMP 플러딩 탐지
+alert icmp any any -> 10.10.0.41 any (
+    msg:"VACUUM: ICMP flood towards robot vacuum";
+    itype:8;
+    detection_filter:track by_src, count 30, seconds 5;
+    sid:4000309; rev:1;
+)
+
+# V10 - HEAD 메서드를 이용한 HTTP 프로빙 탐지
+alert tcp any any -> 10.10.0.41 80 (
+    msg:"VACUUM: HTTP HEAD probe to vacuum";
+    http_method;
+    content:"HEAD";
+    sid:4000310; rev:1;
+)
+
+# V11 - 로그 파일 디렉터리 트래버설 차단
+drop tcp any any -> 10.10.0.41 80 (
+    msg:"VACUUM: Log file traversal attempt";
+    http_uri;
+    content:"/logs/",nocase;
+    http_uri;
+    content:"../",distance 0;
+    sid:4000311; rev:1;
+)
+
+# V12 - OTA 펌웨어 업로드 차단
+drop tcp any any -> 10.10.0.41 80 (
+    msg:"VACUUM: Unauthorized firmware update upload";
+    http_uri;
+    content:"/ota/upload",nocase;
+    http_client_body;
+    content:".tar",nocase;
+    sid:4000312; rev:1;
+)
+

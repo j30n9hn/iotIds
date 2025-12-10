@@ -1,0 +1,109 @@
+########################################
+# PRINTER (10.10.0.40) - Snort 3
+########################################
+
+# P1 - 악성 PostScript 내 system() 호출 차단
+drop tcp any any -> 10.10.0.40 9100 (
+    msg:"PRINTER: Suspicious PostScript with system() call";
+    flow:to_server,established;
+    content:"%!PS",depth 4;
+    content:"system(",nocase,distance 0;
+    sid:4000201; rev:1;
+)
+
+# P2 - PJL EXEC 명령 차단
+drop tcp any any -> 10.10.0.40 9100 (
+    msg:"PRINTER: Malicious PJL EXEC command";
+    flow:to_server,established;
+    content:"@PJL",nocase,depth 4;
+    content:"EXEC",nocase,distance 0;
+    sid:4000202; rev:1;
+)
+
+# P3 - 과도한 Scan to Email 전송 탐지
+alert tcp 10.10.0.40 any -> any 25 (
+    msg:"PRINTER: Excessive scan-to-email activity";
+    flow:to_server,established;
+    content:"Subject: Scan to Email",nocase,depth 40;
+    detection_filter:track by_src, count 20, seconds 60;
+    sid:4000203; rev:1;
+)
+
+# P4 - 웹 어드민 로그인 브루트포스 차단
+drop tcp any any -> 10.10.0.40 80 (
+    msg:"PRINTER: Web admin brute force blocked";
+    http_uri;
+    content:"/login",nocase;
+    detection_filter:track by_src, count 10, seconds 30;
+    sid:4000204; rev:1;
+)
+
+# P5 - /admin 접근 탐지
+alert tcp any any -> 10.10.0.40 80 (
+    msg:"PRINTER: Access to admin panel";
+    http_uri;
+    content:"/admin",nocase;
+    sid:4000205; rev:1;
+)
+
+# P6 - 로그 다운로드에서 디렉터리 트래버설 차단
+drop tcp any any -> 10.10.0.40 80 (
+    msg:"PRINTER: Path traversal in log download";
+    http_uri;
+    content:"/logs",nocase;
+    http_uri;
+    content:"../",distance 0;
+    sid:4000206; rev:1;
+)
+
+# P7 - 기본 계정 admin:printer 사용 탐지
+alert tcp any any -> 10.10.0.40 80 (
+    msg:"PRINTER: Default credential admin:printer used";
+    http_header;
+    content:"Authorization: Basic YWRtaW46cHJpbnRlcg==";
+    sid:4000207; rev:1;
+)
+
+# P8 - 펌웨어 업로드 시도 차단
+drop tcp any any -> 10.10.0.40 80 (
+    msg:"PRINTER: Unauthorized firmware upload attempt";
+    http_uri;
+    content:"/fw_upload",nocase;
+    http_client_body;
+    content:".bin",nocase;
+    sid:4000208; rev:1;
+)
+
+# P9 - 프린터 대상 ICMP 플러딩 탐지
+alert icmp any any -> 10.10.0.40 any (
+    msg:"PRINTER: ICMP flood towards printer";
+    itype:8;
+    detection_filter:track by_src, count 30, seconds 5;
+    sid:4000209; rev:1;
+)
+
+# P10 - LPD 대용량 Job 전송 차단
+drop tcp any any -> 10.10.0.40 515 (
+    msg:"PRINTER: LPD buffer overflow sized job";
+    flow:to_server,established;
+    dsize:>1400;
+    sid:4000210; rev:1;
+)
+
+# P11 - 프린터를 통한 외부 web shell pivot 의심
+alert tcp 10.10.0.40 any -> any 80 (
+    msg:"PRINTER: Possible web shell outbound traffic";
+    flow:from_server,established;
+    content:"cmd=",nocase;
+    content:"/bin/sh",nocase,distance 0;
+    sid:4000211; rev:1;
+)
+
+# P12 - 숨겨진 디버그 콘솔 접근 탐지
+alert tcp any any -> 10.10.0.40 80 (
+    msg:"PRINTER: Access to hidden debug console";
+    http_uri;
+    content:"/debug/console",nocase;
+    sid:4000212; rev:1;
+)
+

@@ -1,0 +1,126 @@
+########################################
+# HEATER / HIGH-POWER DEVICE (10.10.0.43) - Snort 3
+########################################
+
+# H1 - 전열기 전원 ON 명령 차단
+drop tcp any any -> 10.10.0.43 80 (
+    msg:"HEATER: Unauthorized power ON command";
+    http_uri;
+    content:"/heater/power",nocase;
+    http_client_body;
+    content:"\"state\":\"on\"",nocase;
+    sid:4000501; rev:1;
+)
+
+# H2 - 터보 모드 활성화 차단
+drop tcp any any -> 10.10.0.43 80 (
+    msg:"HEATER: Dangerous turbo mode activation";
+    http_uri;
+    content:"/heater/mode",nocase;
+    http_client_body;
+    content:"\"mode\":\"turbo\"",nocase;
+    sid:4000502; rev:1;
+)
+
+# H3 - 24시간 장시간 가동 스케줄 설정 차단
+drop tcp any any -> 10.10.0.43 80 (
+    msg:"HEATER: 24h schedule set remotely";
+    http_uri;
+    content:"/heater/schedule",nocase;
+    http_client_body;
+    content:"\"duration\":1440",nocase;
+    sid:4000503; rev:1;
+)
+
+# H4 - MQTT를 통한 ON 명령 차단
+drop tcp any any -> 10.10.0.43 1883 (
+    msg:"HEATER: MQTT ON command from unauthorized client";
+    flow:to_server,established;
+    content:"PUBLISH";
+    content:"heater/cmd",nocase;
+    content:"ON",nocase,distance 0;
+    sid:4000504; rev:1;
+)
+
+# H5 - Modbus/TCP 레지스터 쓰기 차단
+drop tcp any any -> 10.10.0.43 502 (
+    msg:"HEATER: Modbus write single register command";
+    flow:to_server,established;
+    content:"|00 06|";
+    sid:4000505; rev:1;
+)
+
+# H6 - 히터 API 대상 SQL 인젝션 패턴 차단
+drop tcp any any -> 10.10.0.43 80 (
+    msg:"HEATER: SQL injection attempt on heater API";
+    http_client_body;
+    content:"\" OR \"1\"=\"1",nocase;
+    sid:4000506; rev:1;
+)
+
+# H7 - 로그 다운로드 디렉터리 트래버설 차단
+drop tcp any any -> 10.10.0.43 80 (
+    msg:"HEATER: Directory traversal in log download";
+    http_uri;
+    content:"/logs",nocase;
+    http_uri;
+    content:"../",distance 0;
+    sid:4000507; rev:1;
+)
+
+# H8 - 전열기 대상 HTTP 플러딩 차단
+drop tcp any any -> 10.10.0.43 80 (
+    msg:"HEATER: HTTP flood towards heater";
+    detection_filter:track by_src, count 80, seconds 5;
+    sid:4000508; rev:1;
+)
+
+# H9 - 디버그용 SSH/Telnet 서비스 접근 차단
+drop tcp any any -> 10.10.0.43 [22,23] (
+    msg:"HEATER: Access to debug services blocked";
+    sid:4000509; rev:1;
+)
+
+# H10 - 크립토 마이닝 의심 연결 탐지
+alert tcp 10.10.0.43 any -> any 3333 (
+    msg:"HEATER: Possible crypto-mining connection";
+    flow:to_server,established;
+    content:"stratum+tcp",nocase;
+    sid:4000510; rev:1;
+)
+
+# H11 - curl을 이용한 제어 API 접근 탐지
+alert tcp any any -> 10.10.0.43 80 (
+    msg:"HEATER: Control API accessed via curl";
+    http_header;
+    content:"User-Agent: curl",nocase;
+    sid:4000511; rev:1;
+)
+
+# H12 - 전열기 대상 ICMP 플러딩 탐지
+alert icmp any any -> 10.10.0.43 any (
+    msg:"HEATER: ICMP flood towards heater";
+    itype:8;
+    detection_filter:track by_src, count 30, seconds 5;
+    sid:4000512; rev:1;
+)
+
+# H13 - 안전잠금 해제 시도 차단
+drop tcp any any -> 10.10.0.43 80 (
+    msg:"HEATER: Safety lock disabled";
+    http_uri;
+    content:"/heater/safety/lock",nocase;
+    http_client_body;
+    content:"false",nocase;
+    sid:4000513; rev:1;
+)
+
+# H14 - 히터 펌웨어 업로드 시도 차단
+drop tcp any any -> 10.10.0.43 80 (
+    msg:"HEATER: Unauthorized firmware upload";
+    http_uri;
+    content:"/heater/fw/upload",nocase;
+    http_client_body;
+    content:".bin",nocase;
+    sid:4000514; rev:1;
+)

@@ -1,0 +1,114 @@
+########################################
+# SMART FRIDGE (10.10.0.42) - Snort 3
+########################################
+
+# F1 - 온도 변경 API 호출 차단
+drop tcp any any -> 10.10.0.42 80 (
+    msg:"FRIDGE: Unauthorized temperature change";
+    http_uri;
+    content:"/api/temp/set",nocase;
+    sid:4000401; rev:1;
+)
+
+# F2 - 비정상적인 저온 설정 값 차단
+drop tcp any any -> 10.10.0.42 80 (
+    msg:"FRIDGE: Dangerous temperature setting value";
+    http_uri;
+    content:"/api/temp/set",nocase;
+    http_client_body;
+    content:"temp=-30",nocase;
+    sid:4000402; rev:1;
+)
+
+# F3 - 도어 알람 비활성화 차단
+drop tcp any any -> 10.10.0.42 80 (
+    msg:"FRIDGE: Door alarm disabled remotely";
+    http_uri;
+    content:"/api/door/alarm",nocase;
+    http_client_body;
+    content:"enabled=false",nocase;
+    sid:4000403; rev:1;
+)
+
+# F4 - 제상 기능 비활성화 차단
+drop tcp any any -> 10.10.0.42 80 (
+    msg:"FRIDGE: Defrost function disabled";
+    http_uri;
+    content:"/api/defrost/disable",nocase;
+    sid:4000404; rev:1;
+)
+
+# F5 - 재고 인벤토리 전체 Export 시도 차단
+drop tcp any any -> 10.10.0.42 80 (
+    msg:"FRIDGE: Inventory export to attacker";
+    http_uri;
+    content:"/api/inventory/export",nocase;
+    sid:4000405; rev:1;
+)
+
+# F6 - 외부 서비스로 인벤토리 업로드 탐지
+alert tcp 10.10.0.42 any -> any 443 (
+    msg:"FRIDGE: Food inventory upload to external service";
+    flow:to_server,established;
+    http_uri;
+    content:"/api/v1/paste",nocase;
+    sid:4000406; rev:1;
+)
+
+# F7 - FTP 관리 포트 차단
+drop tcp any any -> 10.10.0.42 21 (
+    msg:"FRIDGE: FTP management access blocked";
+    flow:to_server;
+    sid:4000407; rev:1;
+)
+
+# F8 - SSH 접근 차단
+drop tcp any any -> 10.10.0.42 22 (
+    msg:"FRIDGE: SSH access blocked";
+    flow:to_server;
+    sid:4000408; rev:1;
+)
+
+# F9 - MQTT를 통한 온도 변경 명령 차단
+drop tcp any any -> 10.10.0.42 1883 (
+    msg:"FRIDGE: MQTT command to change temperature";
+    flow:to_server,established;
+    content:"PUBLISH";
+    content:"fridge/temp/set",nocase;
+    sid:4000409; rev:1;
+)
+
+# F10 - 웹 설정 포털 접근 탐지
+alert tcp any any -> 10.10.0.42 8080 (
+    msg:"FRIDGE: Access to web configuration portal";
+    http_uri;
+    content:"/config",nocase;
+    sid:4000410; rev:1;
+)
+
+# F11 - 설정 백업 요청에서 디렉터리 트래버설 차단
+drop tcp any any -> 10.10.0.42 8080 (
+    msg:"FRIDGE: Path traversal attempt in config backup";
+    http_uri;
+    content:"/backup",nocase;
+    http_uri;
+    content:"../",distance 0;
+    sid:4000411; rev:1;
+)
+
+# F12 - 냉장고 대상 ICMP 플러딩 탐지
+alert icmp any any -> 10.10.0.42 any (
+    msg:"FRIDGE: ICMP flood towards smart fridge";
+    itype:8;
+    detection_filter:track by_src, count 30, seconds 5;
+    sid:4000412; rev:1;
+)
+
+# F13 - 클라우드 토큰 리셋 시도 차단
+drop tcp any any -> 10.10.0.42 80 (
+    msg:"FRIDGE: Cloud token reset attempt";
+    http_uri;
+    content:"/api/cloud/token/reset",nocase;
+    sid:4000413; rev:1;
+)
+
