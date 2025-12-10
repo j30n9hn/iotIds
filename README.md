@@ -105,4 +105,4 @@ docker exec -it attacker /bin/bash
 ```
 nmap -sS -p 1-1000 10.10.0.30
 ```
-nmap만 설치. 필요 시 추가
+nmap, hping3, metasploit, hydara
