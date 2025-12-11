@@ -47,6 +47,13 @@ iptables -t nat -A POSTROUTING -o "$EXT_IF" -j MASQUERADE || echo "[router] WARN
 iptables -A FORWARD -i "$EXT_IF" -o "$INT_IF" -j ACCEPT || echo "[router] WARNING: FORWARD ext->int failed"
 iptables -A FORWARD -i "$INT_IF" -o "$EXT_IF" -j ACCEPT || echo "[router] WARNING: FORWARD int->ext failed"
 
+# external_net → lab_net
+iptables -I FORWARD -s 192.168.50.0/24 -d 10.10.0.0/24 -j NFQUEUE --queue-num 0
+
+# lab_net → external_net
+iptables -I FORWARD -s 10.10.0.0/24 -d 192.168.50.0/24 -j NFQUEUE --queue-num 0
+
+
 echo "[router] iptables filter table:"
 iptables -vnL || true
 echo "[router] iptables nat table:"
