@@ -13,6 +13,7 @@ RUN apt-get update \
         hping3 \
         hydra \
         tshark \
+        fping \
         metasploit-framework \
     && update-ca-certificates \
     && rm -rf /var/lib/apt/lists/*
