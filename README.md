@@ -3,13 +3,13 @@
 Docker 기반으로 외부 공격자 → 라우터 → 내부 IoT 네트워크 → IDS(Snort3) 의 구조를 재현하여
 IoT 장비(CCTV, Hub 등)에 대한 공격을 탐지·차단하는 실습용 환경
 
-IDS는 Snort3 Inline 모드(afpacket)로 실행되어 실제처럼 패킷을 탐지 및 차단
+IDS는 Snort3 Inline 모드(NFQUEUE, DAQ: nfq)로 실행되어 라우터의 iptables(FORWARD 체인)와 연동하여 실제처럼 패킷을 탐지 및 차단
 
 구성 요소:
 - attacker (외부망)
 - router (NAT, IP forwarding, 외부망 ↔ 내부망 라우팅)
 - wifi / hub / home / printer / vacuum / fridge / heater (내부 IoT 네트워크)
-- ids (Snort3) – Snort3 Inline 모드 기반 IDS/IPS — 모든 브리지 트래픽 모니터링
+- ids (Snort3) – NFQUEUE 기반 IDS/IPS - router를 통과하는 트래픽을 인라인 검사
 
 # 실행 순서
 ## 환경 다운로드
@@ -57,8 +57,8 @@ heater (10.10.0.43)
 `router-entrypoint.sh` 에 의해 다음 기능 수행:
 - IP forwarding 활성화
 - NAT(MASQUERADE) 구성
-- FORWARD 체인 패킷 허용
-- external_net ↔ lab_net 라우팅 허용
+- FORWARD 체인 기본 정책 및 라우팅 허용
+- external_net ↔ lab_net 방향 트래픽을 NFQUEUE(큐 번호 0)로 전달하여 Snort와 연동
 
 모든 IoT 기기(wifi, hub, home)와 attacker는
 `set-gateway.sh` 에 의해 router를 기본 게이트웨이로 사용:
@@ -68,18 +68,18 @@ default via 10.10.0.254    (wifi/hub/home)
 ```
 실제 공격 구조:
 ```
-attacker → router → hub
+attacker → router (NFQUEUE) → Snort → (허용 시) hub
 ```
 
 # IDS
 ## 설명
 Snort3 IDS는 router 컨테이너와 동일한 네트워크 네임스페이스에서 실행(network_mode: container:router)
 
-따라서 Snort는 router의 eth0(external_net)과 eth1(lab_net)을 직접 공유하고,
-Router를 통과하는 모든 트래픽(외부→내부, 내부→외부)을 Inline 모드로 검사 및 차단
+라우터의 iptables(FORWARD 체인)에 설정된 NFQUEUE --queue-num 0 으로 외부 ↔ 내부(lab_net) 트래픽이 큐에 전달됨
 
-즉, Snort는 네트워크 구조상 Router 바로 뒤에 위치한 IDS/IPS 역할을 수행하며,
-실제 기업 네트워크에서 방화벽 앞단이나 뒤단에 배치되는 IPS와 동일한 구성을 갖음
+Snort는 DAQ: nfq 를 사용해 NFQUEUE(0번 큐)를 인라인으로 처리하면서 패킷을 허용 또는 drop 한다.
+
+즉, Snort는 네트워크 구조상 Router를 통과하는 모든 외부↔내부 트래픽의 “목”에 위치한 IPS 역할을 수행하며, 실제 기업 네트워크에서 방화벽 앞단/뒤단에 배치된 인라인 IPS와 거의 동일한 구성을 갖는다.
 
 ## IP 추가
 새로운 IP 추가 시 다음과 같은 형식으로 `snort.lua`에 작성
@@ -96,11 +96,11 @@ docker exec -it ids-container /bin/bash
 ## snort3
 ```
 cd /opt
-snort -Q --daq afpacket --daq-mode inline -i eth0 -c ./snort3/lua/snort.lua -A alert_fast -l ./
+snort -Q --daq nfq --daq-mode inline --daq-var queue=0 -c ./snort3/lua/snort.lua
 ```
 - IDS 컨테이너는 router 컨테이너의 네트워크 스택을 공유(network_mode: container:router)
-- 따라서 단일 인터페이스 eth0만 감시하면 됨
-- `afpacket inline` 모드는 패킷 탐지 + 차단(drop) 지원
+- snort를 실행해야만 서로 통신이 됨
+- 패킷은 먼저 router iptables 의 NFQUEUE(0번 큐)로 들어가고, Snort가 이를 인라인으로 검사한 뒤 허용/차단(drop) 을 결정
 
 # Attacker
 ## docker
