@@ -45,6 +45,8 @@ docker compose build --no-cache
         ↓
 wifi (10.10.0.20)
 hub  (10.10.0.30)
+curtain (10.10.0.31)
+door (10.10.0.32)
 home (10.10.0.70)
 printer (10.10.0.40)
 vacuum (10.10.0.41)
